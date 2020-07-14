@@ -6,10 +6,10 @@ import webpackDevMiddleware from 'webpack-dev-middleware';
 import webpackHotMiddleware from 'webpack-hot-middleware';
 import errorOverlayMiddleware from 'react-dev-utils/errorOverlayMiddleware';
 import webpackConfig from './webpack.config';
-import run, { format } from './run';
+import run, { format, options } from './run';
 import clean from './clean';
 
-const isDebug = !process.argv.includes('--release');
+const debug = !options.release;
 
 // https://webpack.js.org/configuration/watch/#watchoptions
 const watchOptions = {
@@ -62,6 +62,7 @@ let server: Application;
 async function start() {
   if (server) return server;
   server = express();
+  server.set('x-powered-by', false);
   server.use(errorOverlayMiddleware());
   server.use(express.static(path.resolve(__dirname, '../public')));
 
@@ -220,7 +221,7 @@ async function start() {
   appPromiseIsResolved = true;
   appPromiseResolve!();
 
-  const port = process.env.PORT ? Number(process.env.PORT) : undefined;
+  const port = options.port ? Number(options.port) : undefined;
 
   // Launch the development server with Browsersync and HMR
   await new Promise((resolve, reject) =>
@@ -229,8 +230,9 @@ async function start() {
         // https://www.browsersync.io/docs/options
         server: { baseDir: '../public' },
         middleware: [server],
-        open: process.argv.includes('--silent') ? false : 'local',
-        ...(isDebug ? {} : { notify: false, ui: {} }),
+        open: options.silent ? false : 'local',
+        notify: false,
+        ...(debug ? {} : { ui: {} }),
         ...(port ? { port } : null),
       },
       (error, bs) => (error ? reject(error) : resolve(bs)),

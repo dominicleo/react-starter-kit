@@ -1,17 +1,24 @@
 module.exports = {
-  roots: ['<rootDir>'],
-  moduleFileExtensions: ['js', 'ts', 'tsx', 'json'],
-  testPathIgnorePatterns: ['<rootDir>[/\\\\](node_modules|.next|build)[/\\\\]'],
-  transformIgnorePatterns: ['[/\\\\]node_modules[/\\\\].+\\.(ts|tsx)$'],
-  transform: {
-    '^.+\\.(ts|tsx)$': 'babel-jest',
-  },
-  watchPlugins: [
-    'jest-watch-typeahead/filename',
-    'jest-watch-typeahead/testname',
+  automock: false,
+  browser: false,
+  bail: false,
+  collectCoverageFrom: [
+    'src/**/*.{ts,tsx,js,jsx}',
+    '!**/node_modules/**',
+    '!**/vendor/**',
   ],
-  moduleNameMapper: {
-    '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
-    '\\.(gif|ttf|eot|svg|png)$': '<rootDir>/test/__mocks__/fileMock.js',
+  coverageDirectory: '<rootDir>/coverage',
+  globals: {
+    __DEV__: true,
   },
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  moduleNameMapper: {
+    '\\.(css|less|styl|scss|sass|sss)$': 'identity-obj-proxy',
+  },
+  transform: {
+    '\\.(ts|tsx|js|jsx)$': 'babel-jest',
+    '^(?!.*\\.(js|jsx|json|css|less|styl|scss|sass|sss)$)':
+      '<rootDir>/tools/lib/fileTransformer.js',
+  },
+  verbose: true,
 };

@@ -1,10 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import webpack from 'webpack';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import WebpackAssetsManifest from 'webpack-assets-manifest';
 import nodeExternals from 'webpack-node-externals';
 import cssnano from 'cssnano';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
+import TerserPlugin from 'terser-webpack-plugin';
+// import AutoDllPlugin from 'autodll-webpack-plugin';
 import overrideRules from './lib/overrideRules';
 import pkg from '../package.json';
 import postcssConfig from './postcss.config';
@@ -15,37 +18,30 @@ const resolvePath = (...args: string[]) => path.resolve(ROOT_DIR, ...args);
 const SRC_DIR = resolvePath('src');
 const BUILD_DIR = resolvePath('build');
 
-const isDebug = !process.argv.includes('--release');
-const isVerbose = process.argv.includes('--verbose');
-const isAnalyze =
-  process.argv.includes('--analyze') || process.argv.includes('--analyse');
+const debug = !options.release;
+const { verbose, analyze } = options;
 
-const reScript = /\.(ts|tsx|js|jsx|mjs)$/;
-const reStyle = /\.(css|less|styl|scss|sass|sss)$/;
-const reImage = /\.(bmp|gif|jpg|jpeg|png|svg)$/;
+const REG_SCRIPT = /\.(ts|tsx|js|jsx|mjs)$/;
+const REG_STYLE = /\.(css|less|styl|scss|sass|sss)$/;
+const REG_IMAGE = /\.(bmp|gif|jpg|jpeg|png|svg)$/;
+const REG_ANTD = /[\\/]node_modules[\\/].*(antd|antd-mobile)/;
 
-const staticAssetName = isDebug
-  ? '[path][name].[ext]?[hash:8]'
-  : '[hash:8].[ext]';
+const staticAssetName = debug ? '[path][name].[ext]?[hash:8]' : '[hash:8].[ext]';
 
-//
 // Common configuration chunk to be used for both
 // client-side (client.js) and server-side (server.js) bundles
-// -----------------------------------------------------------------------------
 
 const config = {
   context: ROOT_DIR,
 
-  mode: isDebug ? 'development' : 'production',
+  mode: debug ? 'development' : 'production',
 
   output: {
     path: resolvePath(BUILD_DIR, 'public/assets'),
     publicPath: '/assets/',
-    pathinfo: isVerbose,
-    filename: isDebug ? '[name].js' : '[name].[chunkhash:8].js',
-    chunkFilename: isDebug
-      ? '[name].chunk.js'
-      : '[name].[chunkhash:8].chunk.js',
+    pathinfo: verbose,
+    filename: debug ? '[name].js' : '[name].[chunkhash:8].js',
+    chunkFilename: debug ? '[name].chunk.js' : '[name].[chunkhash:8].chunk.js',
     // Point sourcemap entries to original disk location (format as URL on Windows)
     devtoolModuleFilenameTemplate: (info: any) =>
       path.resolve(info.absoluteResourcePath).replace(/\\/g, '/'),
@@ -58,12 +54,12 @@ const config = {
     rules: [
       // Rules for JS / JSX
       {
-        test: reScript,
+        test: REG_SCRIPT,
         include: [SRC_DIR, resolvePath('tools')],
         loader: 'babel-loader',
         options: {
           // https://github.com/babel/babel-loader#options
-          cacheDirectory: isDebug,
+          cacheDirectory: debug,
 
           // https://babeljs.io/docs/usage/options/
           babelrc: false,
@@ -77,7 +73,7 @@ const config = {
                 targets: {
                   browsers: pkg.browserslist,
                 },
-                forceAllTransforms: !isDebug, // for UglifyJS
+                forceAllTransforms: !debug, // for UglifyJS
                 modules: false,
                 useBuiltIns: false,
                 debug: false,
@@ -85,7 +81,7 @@ const config = {
             ],
             // JSX
             // https://github.com/babel/babel/tree/master/packages/babel-preset-react
-            ['@babel/preset-react', { development: isDebug }],
+            ['@babel/preset-react', { development: debug }],
 
             // TypeScript
             '@babel/preset-typescript',
@@ -101,86 +97,85 @@ const config = {
         },
       },
 
-      // Rules for Style Sheets
       {
-        test: reStyle,
+        test: REG_STYLE,
+        include: [REG_ANTD],
         rules: [
-          // Convert CSS into JS module
           {
-            issuer: { not: [reStyle] },
-            use: 'isomorphic-style-loader',
+            loader: MiniCssExtractPlugin.loader,
           },
-
-          // Process external/third-party styles
           {
-            exclude: SRC_DIR,
             loader: 'css-loader',
             options: {
-              sourceMap: isDebug,
+              sourceMap: debug,
             },
           },
           {
             exclude: SRC_DIR,
             loader: 'postcss-loader',
             options: {
-              plugins: [
-                // CSS Nano options http://cssnano.co/
-                cssnano(),
-                // TODO: cssnano doesn't support comment discarding. Do it in somewhere else.
-              ],
+              plugins: [cssnano()],
             },
           },
+          {
+            test: /\.less$/,
+            loader: 'less-loader',
+            options: {
+              lessOptions: {
+                javascriptEnabled: true,
+              },
+            },
+          },
+        ],
+      },
 
-          // Process internal/project styles (from src folder)
+      {
+        test: REG_STYLE,
+        exclude: [REG_ANTD],
+        rules: [
+          {
+            issuer: { not: [REG_STYLE] },
+            use: 'isomorphic-style-loader',
+          },
+
+          {
+            exclude: SRC_DIR,
+            loader: 'css-loader',
+            options: {
+              sourceMap: debug,
+            },
+          },
+          {
+            exclude: SRC_DIR,
+            loader: 'postcss-loader',
+            options: {
+              plugins: [cssnano()],
+            },
+          },
           {
             include: SRC_DIR,
             loader: 'css-loader',
             options: {
-              // CSS Loader https://github.com/webpack/css-loader
               importLoaders: 1,
-              sourceMap: isDebug,
-              // CSS Modules https://github.com/css-modules/css-modules
+              sourceMap: debug,
               modules: {
-                localIdentName: isDebug
-                  ? '[name]-[local]-[hash:base64:5]'
-                  : '[hash:base64:5]',
+                localIdentName: debug ? '[name]-[local]-[hash:base64:5]' : '[hash:base64:5]',
               },
             },
           },
-
-          // Apply PostCSS plugins including autoprefixer
           {
             loader: 'postcss-loader',
             options: postcssConfig,
           },
-
-          // Compile Less to CSS
-          // https://github.com/webpack-contrib/less-loader
-          // Install dependencies before uncommenting: yarn add --dev less-loader less
-          // {
-          //   test: /\.less$/,
-          //   loader: 'less-loader',
-          // },
-
-          // Compile Sass to CSS
-          // https://github.com/webpack-contrib/sass-loader
-          // Install dependencies before uncommenting: yarn add --dev sass-loader node-sass
-          // {
-          //   test: /\.(scss|sass)$/,
-          //   loader: 'sass-loader',
-          // },
         ],
       },
 
-      // Rules for images
       {
-        test: reImage,
+        test: REG_IMAGE,
         oneOf: [
-          // Inline lightweight images into CSS
           {
-            issuer: reStyle,
+            issuer: REG_STYLE,
             oneOf: [
-              // Inline lightweight SVGs as UTF-8 encoded DataUrl string
               {
                 test: /\.svg$/,
                 loader: 'svg-url-loader',
@@ -190,7 +185,6 @@ const config = {
                 },
               },
 
-              // Inline lightweight images as Base64 encoded DataUrl string
               {
                 loader: 'url-loader',
                 options: {
@@ -201,7 +195,6 @@ const config = {
             ],
           },
 
-          // Or return public URL to image resource
           {
             loader: 'file-loader',
             options: {
@@ -211,36 +204,29 @@ const config = {
         ],
       },
 
-      // Convert plain text into JS module
       {
         test: /\.txt$/,
         loader: 'raw-loader',
       },
 
-      // Convert Markdown into HTML
       {
         test: /\.md$/,
         loader: path.resolve(__dirname, './lib/markdown-loader'),
       },
 
-      // Return public URL for all assets unless explicitly excluded
-      // DO NOT FORGET to update `exclude` list when you adding a new loader
       {
-        exclude: [reScript, reStyle, reImage, /\.json$/, /\.txt$/, /\.md$/],
+        exclude: [REG_SCRIPT, REG_STYLE, REG_IMAGE, /\.json$/, /\.txt$/, /\.md$/],
         loader: 'file-loader',
         options: {
           name: staticAssetName,
         },
       },
 
-      // Exclude dev modules from production build
-      ...(isDebug
+      ...(debug
         ? []
         : [
             {
-              test: resolvePath(
-                'node_modules/react-deep-force-update/lib/index.js',
-              ),
+              test: resolvePath('node_modules/react-deep-force-update/lib/index.js'),
               loader: 'null-loader',
             },
           ]),
@@ -248,36 +234,34 @@ const config = {
   },
 
   resolve: {
-    extensions: ['.ts', '.tsx', '.js', '.json'],
+    alias: {
+      '@': SRC_DIR,
+    },
+    extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
   },
 
   resolveLoader: {
     extensions: ['.ts', '.js', '.json'],
   },
 
-  // Don't attempt to continue if there are any errors.
-  bail: !isDebug,
+  bail: !debug,
 
-  cache: isDebug,
+  cache: debug,
 
-  // Specify what bundle information gets displayed
-  // https://webpack.js.org/configuration/stats/
   stats: {
-    cached: isVerbose,
-    cachedAssets: isVerbose,
-    chunks: isVerbose,
-    chunkModules: isVerbose,
+    cached: verbose,
+    cachedAssets: verbose,
+    chunks: verbose,
+    chunkModules: verbose,
     colors: true,
-    hash: isVerbose,
-    modules: isVerbose,
-    reasons: isDebug,
+    hash: verbose,
+    modules: verbose,
+    reasons: debug,
     timings: true,
-    version: isVerbose,
+    version: verbose,
   },
 
-  // Choose a developer tool to enhance debugging
-  // https://webpack.js.org/configuration/devtool/#devtool
-  devtool: isDebug ? 'cheap-module-inline-source-map' : 'source-map',
+  devtool: debug ? 'cheap-module-inline-source-map' : 'source-map',
 };
 
 const clientConfig = {
@@ -298,9 +282,9 @@ const clientConfig = {
           ...rule,
           options: {
             ...rule.options,
-            plugins: [
-              ['import', { libraryName: 'antd', style: true }, 'antd'],
-            ].concat(rule.options.plugins),
+            plugins: [['import', { libraryName: 'antd', style: true }, 'antd']].concat(
+              rule.options.plugins,
+            ),
           },
         };
       }
@@ -313,7 +297,13 @@ const clientConfig = {
     // https://webpack.js.org/plugins/define-plugin/
     new webpack.DefinePlugin({
       'process.env.BROWSER': true,
-      __DEV__: isDebug,
+      __DEV__: debug,
+    }),
+
+    // Lightweight CSS extraction plugin
+    // https://github.com/webpack-contrib/mini-css-extract-plugin
+    new MiniCssExtractPlugin({
+      filename: debug ? 'css/[name].css' : 'css/[name].[chunkhash:8].css',
     }),
 
     // Emit a file with assets paths
@@ -333,36 +323,30 @@ const clientConfig = {
         try {
           const fileFilter = (file: string) => !file.endsWith('.map');
           const addPath = (file: string) => manifest.getPublicPath(file);
-          const chunkFiles = stats.compilation.chunkGroups.reduce(
-            (acc: any[], c: any) => {
-              acc[c.name] = [
-                ...(acc[c.name] || []),
-                ...c.chunks.reduce(
-                  (files: any[], cc: any) => [
-                    ...files,
-                    ...cc.files.filter(fileFilter).map(addPath),
-                  ],
-                  [],
-                ),
-              ];
-              return acc;
-            },
-            Object.create(null),
-          );
+          const chunkFiles = stats.compilation.chunkGroups.reduce((acc: any[], c: any) => {
+            acc[c.name] = [
+              ...(acc[c.name] || []),
+              ...c.chunks.reduce(
+                (files: any[], cc: any) => [...files, ...cc.files.filter(fileFilter).map(addPath)],
+                [],
+              ),
+            ];
+            return acc;
+          }, Object.create(null));
           fs.writeFileSync(chunkFileName, JSON.stringify(chunkFiles, null, 2));
         } catch (err) {
           console.error(`ERROR: Cannot write ${chunkFileName}: `, err);
-          if (!isDebug) process.exit(1);
+          if (!debug) process.exit(1);
         }
       },
     }),
 
-    ...(isDebug
+    ...(debug
       ? []
       : [
           // Webpack Bundle Analyzer
           // https://github.com/th0r/webpack-bundle-analyzer
-          ...(isAnalyze ? [new BundleAnalyzerPlugin()] : []),
+          ...(analyze ? [new BundleAnalyzerPlugin()] : []),
         ]),
   ],
 
@@ -376,6 +360,25 @@ const clientConfig = {
         },
       },
     },
+    minimizer: !debug
+      ? [
+          // This plugin uses terser to minify your JavaScript.
+          // https://webpack.js.org/plugins/terser-webpack-plugin/
+          new TerserPlugin({
+            cache: true,
+            parallel: true,
+            terserOptions: {
+              ecma: 6,
+              warnings: false,
+              extractComments: false,
+              compress: {
+                // drop_console: true,
+              },
+              ie8: false,
+            },
+          }),
+        ]
+      : [],
   },
 
   node: {
@@ -455,7 +458,7 @@ const serverConfig = {
     './chunk-manifest.json',
     './asset-manifest.json',
     nodeExternals({
-      whitelist: [reStyle, reImage],
+      whitelist: [REG_STYLE, REG_IMAGE],
     }),
   ],
 
@@ -464,7 +467,7 @@ const serverConfig = {
     // https://webpack.js.org/plugins/define-plugin/
     new webpack.DefinePlugin({
       'process.env.BROWSER': false,
-      __DEV__: isDebug,
+      __DEV__: debug,
     }),
 
     // Adds a banner to the top of each generated chunk

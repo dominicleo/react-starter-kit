@@ -12,8 +12,12 @@ module.exports = {
     '@babel/preset-typescript',
   ],
   plugins: [
-    '@babel/plugin-proposal-class-properties',
-    '@babel/plugin-syntax-dynamic-import',
+    // https://github.com/babel/babel/tree/main/packages/babel-plugin-proposal-nullish-coalescing-operator
+    // Remove nullish coalescing operator
+    '@babel/plugin-proposal-nullish-coalescing-operator',
+    // https://github.com/babel/babel/tree/main/packages/babel-plugin-proposal-optional-chaining
+    // Transform optional chaining operators into a series of nil checks
+    '@babel/plugin-proposal-optional-chaining',
   ],
   ignore: ['node_modules', 'build'],
 };

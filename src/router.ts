@@ -1,5 +1,5 @@
 import UniversalRouter from 'universal-router';
-import routes from './routes';
+import routes from '@/routes';
 
 export default new UniversalRouter(routes, {
   resolveRoute(context, params) {

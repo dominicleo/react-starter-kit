@@ -9,9 +9,6 @@ build
 # Generate Types
 __generated__
 
-# Runtime data
-database.sqlite
-
 # Test coverage
 coverage
 

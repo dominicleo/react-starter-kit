@@ -5,14 +5,14 @@ import bodyParser from 'body-parser';
 import React from 'react';
 import ReactDOM from 'react-dom/server';
 import PrettyError from 'pretty-error';
-import { AppContextTypes } from './context';
-import App from './components/App';
-import Html from './components/Html';
-import { ErrorPageWithoutStyle } from './routes/error/ErrorPage';
-import errorPageStyle from './routes/error/ErrorPage.css';
+import { AppContextTypes } from '@/context';
+import App from '@/components/shared/app';
+import Html from '@/components/shared/html';
+import { ErrorPageWithoutStyle } from '@/pages/error/ErrorPage';
+import errorPageStyle from '@/pages/error/ErrorPage.css';
 import router from './router';
 // @ts-ignore
-import chunks from './chunk-manifest.json'; // eslint-disable-line import/no-unresolved
+import chunks from './chunk-manifest.json';
 import config from './config';
 
 process.on('unhandledRejection', (reason, p) => {
@@ -32,23 +32,16 @@ global.navigator.userAgent = global.navigator.userAgent || 'all';
 
 const app = express();
 
-//
-// If you are using proxy from external machine, you can set TRUST_PROXY env
-// Default is to trust proxy headers only from loopback interface.
-// -----------------------------------------------------------------------------
 app.set('trust proxy', config.trustProxy);
+app.set('x-powered-by', false);
 
-//
 // Register Node.js middleware
-// -----------------------------------------------------------------------------
 app.use(express.static(path.resolve(__dirname, 'public')));
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-//
 // Register server-side rendering middleware
-// -----------------------------------------------------------------------------
 app.get('*', async (req, res, next) => {
   try {
     const css = new Set();

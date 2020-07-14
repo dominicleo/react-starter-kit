@@ -16,7 +16,6 @@ async function copy() {
       JSON.stringify(
         {
           private: true,
-          engines: pkg.engines,
           dependencies: pkg.dependencies,
           scripts: {
             start: 'node server.js',
@@ -26,7 +25,6 @@ async function copy() {
         2,
       ),
     ),
-    copyFile('LICENSE.txt', 'build/LICENSE.txt'),
     copyFile('yarn.lock', 'build/yarn.lock'),
     copyDir('public', 'build/public'),
   ]);

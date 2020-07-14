@@ -1,5 +1,5 @@
 import cp from 'child_process';
-import run from './run';
+import run, { options } from './run';
 import clean from './clean';
 import copy from './copy';
 import bundle from './bundle';
@@ -15,11 +15,11 @@ async function build() {
   await run(copy);
   await run(bundle);
 
-  if (process.argv.includes('--static')) {
+  if (options.static) {
     await run(render);
   }
 
-  if (process.argv.includes('--docker')) {
+  if (options.doctor) {
     cp.spawnSync('docker', ['build', '-t', pkg.name, '.'], {
       stdio: 'inherit',
     });
