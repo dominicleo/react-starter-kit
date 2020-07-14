@@ -1,0 +1,53 @@
+#!/usr/bin/env node
+const program = require('commander');
+const { name, version } = require('../package.json');
+
+program
+  .name(name)
+  .version(version, '-V, --version', '输出版本号')
+  .usage('yarn exec [command]')
+  .option('-r, --release', '最小化和优化编译输出')
+  .option('-v, --verbose', '将详细信息打印到控制台')
+  .option('-a, --analyze, --analyse', '启动 Webpack Bundle Analyzer')
+  .option('-d, --doctor', '从 Dockerfile 构建映像')
+  .option('-S, --static', '将指定的路由呈现为静态html文件')
+  .option('-s, --silent', '禁止打开默认浏览器')
+  .option('-p, --port [value]', '启动端口', parseInt, process.env.PORT || 3000)
+  .helpOption('-h, --help', '显示帮助信息')
+  .parse(process.argv);
+
+require('@babel/register')({
+  presets: [
+    [
+      '@babel/preset-env',
+      {
+        targets: {
+          node: 'current',
+        },
+      },
+    ],
+    '@babel/preset-typescript',
+  ],
+  extensions: ['.ts'],
+  ignore: ['node_modules', 'build'],
+  cache: true,
+});
+
+(() => {
+  const [command] = program.args;
+  if (!command) {
+    program.help();
+    return;
+  }
+
+  delete require.cache[__filename];
+
+  const module = require(`../tools/${command}`).default;
+  const options = program.opts();
+
+  require('../tools/run')
+    .default(module, options)
+    .catch((error) => {
+      require('../tools/lib/logger').default.error(error);
+    });
+})();
