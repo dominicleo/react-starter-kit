@@ -4,44 +4,55 @@ import LoginRegister from '@/layouts/login-register';
 
 const routes: Route = {
   path: '',
-  component: BasicLayout,
   children: [
     {
       path: '',
-      title: '首页',
-      chunk: 'home',
-      load: () => import(/* webpackChunkName: 'home' */ '@/pages/home'),
-    },
-    {
-      path: '/user',
-      component: LoginRegister,
-      redirect: '/user/login',
+      component: BasicLayout,
       children: [
         {
-          path: '/login',
-          title: '登录',
-          chunk: 'login',
-          load: () => import(/* webpackChunkName: 'login' */ '@/pages/login'),
+          path: '',
+          title: '首页',
+          chunk: 'home',
+          load: () => import(/* webpackChunkName: 'home' */ '@/pages/home'),
         },
         {
-          path: '/register',
-          title: '注册',
-          chunk: 'login',
-          load: () => import(/* webpackChunkName: 'register' */ '@/pages/register'),
+          path: '/search',
+          title: '搜索',
+          chunk: 'search',
+          load: () => import(/* webpackChunkName: 'search' */ '@/pages/search'),
+        },
+        {
+          path: '',
+          component: LoginRegister,
+          redirect: '/login',
+          children: [
+            {
+              path: '/login',
+              title: '登录',
+              chunk: 'login',
+              load: () => import(/* webpackChunkName: 'login' */ '@/pages/login'),
+            },
+            {
+              path: '/register',
+              title: '注册',
+              chunk: 'login',
+              load: () => import(/* webpackChunkName: 'register' */ '@/pages/register'),
+            },
+          ],
+        },
+        {
+          path: '(.*)',
+          title: 'Page Not Found',
+          chunk: 'not-found',
+          load: () => import(/* webpackChunkName: 'not-found' */ '@/pages/not-found'),
         },
       ],
-    },
-    {
-      path: '(.*)',
-      chunk: 'not-found',
-      load: () => import(/* webpackChunkName: 'not-found' */ '@/pages/not-found'),
     },
   ],
   async action({ next }: any) {
     const route = await next();
     route.title = route.title || '';
     route.description = route.description || '';
-
     return route;
   },
 };

@@ -1,6 +1,7 @@
 declare const __DEV__: boolean;
 interface Window {
   __APP__: any;
+  chrome: any;
   flexible: any;
 }
 interface NodeModule {
@@ -12,6 +13,10 @@ declare module 'child_process' {
   interface ChildProcess {
     host?: string;
   }
+}
+
+interface GeneralObject {
+  [key: string]: any;
 }
 
 // Declare modules for non-typed packages

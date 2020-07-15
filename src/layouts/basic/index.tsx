@@ -21,10 +21,10 @@ const BasicLayout: React.FC = props => {
             <Search className={s.search} />
           </Col>
           <Col>
-            <Link to="/user/login">登录</Link>
+            <Link to="/login">登录</Link>
           </Col>
           <Col>
-            <Link to="/user/register">注册</Link>
+            <Link to="/register">注册</Link>
           </Col>
         </Row>
       </Header>

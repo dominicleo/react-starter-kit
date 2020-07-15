@@ -80,7 +80,10 @@ $ yarn solar build --release --analyse
 
 ## 参考文档
 
-[ahooks](https://ahooks.js.org/zh-CN) Reacy Hooks 库
+[ahooks](https://ahooks.js.org/zh-CN) React Hooks 库
+
 [dayjs](https://day.js.org/zh-CN/) 一个轻量的处理时间和日期的库
+
 [jest](https://jestjs.io/zh-Hans/) Javascript 测试框架
+
 [commitlint](https://commitlint.js.org/) Lint commit message

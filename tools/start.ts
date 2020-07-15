@@ -12,13 +12,7 @@ import clean from './clean';
 const debug = !options.release;
 
 // https://webpack.js.org/configuration/watch/#watchoptions
-const watchOptions = {
-  // Watching may not work with NFS and machines in VirtualBox
-  // Uncomment next line if it is your case (use true or interval in milliseconds)
-  // poll: true,
-  // Decrease CPU or memory usage in some file systems
-  // ignored: /node_modules/,
-};
+const watchOptions = {};
 
 function createCompilationPromise(name: string, compiler: Compiler, config: Configuration) {
   return new Promise((resolve, reject) => {
@@ -43,12 +37,28 @@ function createCompilationPromise(name: string, compiler: Compiler, config: Conf
   });
 }
 
+const getWebpackConfig = (name: string) => {
+  const config = webpackConfig.find(configure => configure.name === name) as any;
+  config.plugins.push(new webpack.HotModuleReplacementPlugin());
+  config.module.rules = config.module.rules.filter(({ loader }: any) => loader !== 'null-loader');
+
+  if (name === 'client') {
+    config.entry.client = ['./tools/lib/webpackHotDevClient'].concat(config.entry.client);
+    ['filename', 'chunkFilename'].forEach((key: string) => {
+      config.output[key] = config.output[key].replace('chunkhash', 'hash');
+    });
+  }
+
+  if (name === 'server') {
+    config.output.hotUpdateMainFilename = 'updates/[hash].hot-update.json';
+    config.output.hotUpdateChunkFilename = 'updates/[id].[hash].hot-update.js';
+  }
+
+  return config;
+};
+
 let server: Application;
 
-/**
- * Launches a development web server with "live reload" functionality -
- * synchronizing URLs, interactions and code changes across multiple devices.
- */
 async function start() {
   if (server) return server;
   server = express();
@@ -56,37 +66,14 @@ async function start() {
   server.use(errorOverlayMiddleware());
   server.use(express.static(path.resolve(__dirname, '../public')));
 
-  // Configure client-side hot module replacement
-  const clientConfig = webpackConfig.find(config => config.name === 'client') as any;
-  clientConfig.entry.client = ['./tools/lib/webpackHotDevClient']
-    .concat(clientConfig.entry.client)
-    .sort(
-      (a: string, b: string) => Number(b.includes('polyfill')) - Number(a.includes('polyfill')),
-    );
-  clientConfig.output.filename = clientConfig.output.filename.replace('chunkhash', 'hash');
-  clientConfig.output.chunkFilename = clientConfig.output.chunkFilename.replace(
-    'chunkhash',
-    'hash',
-  );
-  clientConfig.module.rules = clientConfig.module.rules.filter(
-    (x: any) => x.loader !== 'null-loader',
-  );
-  clientConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
-
-  // Configure server-side hot module replacement
-  const serverConfig = webpackConfig.find(config => config.name === 'server') as any;
-  serverConfig.output.hotUpdateMainFilename = 'updates/[hash].hot-update.json';
-  serverConfig.output.hotUpdateChunkFilename = 'updates/[id].[hash].hot-update.js';
-  serverConfig.module.rules = serverConfig.module.rules.filter(
-    (x: any) => x.loader !== 'null-loader',
-  );
-  serverConfig.plugins.push(new webpack.HotModuleReplacementPlugin());
+  const clientConfig = getWebpackConfig('client');
+  const serverConfig = getWebpackConfig('server');
 
   // Configure compilation
   await run(clean);
-  const multiCompiler = webpack(webpackConfig as Configuration[]);
-  const clientCompiler = multiCompiler.compilers.find(({ name }) => name === 'client');
-  const serverCompiler = multiCompiler.compilers.find(({ name }) => name === 'server');
+  const multiCompiler = webpack([clientConfig, serverConfig] as Configuration[]);
+  const clientCompiler = multiCompiler.compilers.find(({ name }) => name === 'client')!;
+  const serverCompiler = multiCompiler.compilers.find(({ name }) => name === 'server')!;
   const clientPromise = createCompilationPromise('client', clientCompiler, clientConfig);
   const serverPromise = createCompilationPromise('server', serverCompiler, serverConfig);
 
@@ -181,7 +168,7 @@ async function start() {
   // Load compiled src/server.js as a middleware
   reloadApp();
   appPromiseIsResolved = true;
-  appPromiseResolve();
+  appPromiseResolve!();
 
   const port = options.port ? Number(options.port) : undefined;
 

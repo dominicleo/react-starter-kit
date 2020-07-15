@@ -15,6 +15,7 @@ export default new UniversalRouter(routes, {
 
       return { redirect, ...childrenRoute, component };
     }
+
     if (typeof context.route.load === 'function') {
       return context.route
         .load()
@@ -26,6 +27,7 @@ export default new UniversalRouter(routes, {
         })
         .then((route: any) => ({ ...route, params }));
     }
+
     if (typeof context.route.action === 'function') {
       return context.route.action(context, params);
     }
