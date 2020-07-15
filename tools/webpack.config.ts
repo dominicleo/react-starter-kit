@@ -167,6 +167,15 @@ const config = {
             loader: 'postcss-loader',
             options: postcssConfig,
           },
+          {
+            test: /\.less$/,
+            loader: 'less-loader',
+            options: {
+              lessOptions: {
+                javascriptEnabled: true,
+              },
+            },
+          },
         ],
       },
 

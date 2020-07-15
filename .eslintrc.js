@@ -1,6 +1,6 @@
 module.exports = {
   parser: '@typescript-eslint/parser',
-  plugins: ['@typescript-eslint'],
+  plugins: ['@typescript-eslint/eslint-plugin', 'css-modules', 'prettier', 'jest'],
   extends: [
     'eslint:recommended',
     'plugin:react/recommended',
@@ -12,6 +12,9 @@ module.exports = {
     react: {
       version: 'detect',
     },
+  },
+  globals: {
+    __DEV__: true,
   },
   env: {
     es6: true,
@@ -34,6 +37,7 @@ module.exports = {
     '@typescript-eslint/explicit-module-boundary-types': 0,
     '@typescript-eslint/ban-types': 0,
     '@typescript-eslint/ban-ts-ignore': 0,
+    '@typescript-eslint/no-non-null-assertion': 0,
     '@typescript-eslint/no-unused-vars': [
       2,
       {

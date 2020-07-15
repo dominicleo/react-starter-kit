@@ -7,7 +7,7 @@ import App from '@/components/shared/app';
 import history from '@/utils/history';
 import { updateMeta } from '@/utils/DOMUtils';
 import router from '@/router';
-import { AppContextTypes } from '@/context';
+import { AppContextTypes } from '@/components/shared/app/context';
 
 const insertCss = (...styles: any[]) => {
   const removeCss = styles.map((x: any) => x._insertCss());

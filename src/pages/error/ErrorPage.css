@@ -3,11 +3,11 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 2rem;
   height: 100%;
+  padding: 0 2rem;
+  color: #888;
   font-family: sans-serif;
   text-align: center;
-  color: #888;
 }
 
 body {
@@ -15,8 +15,8 @@ body {
 }
 
 h1 {
-  font-weight: 400;
   color: #555;
+  font-weight: 400;
 }
 
 pre {

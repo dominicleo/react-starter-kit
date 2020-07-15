@@ -5,14 +5,12 @@ export function updateTag(
   attrName: string,
   attrValue: string,
 ) {
-  const node = document.head.querySelector(
-    `${tagName}[${keyName}="${keyValue}"]`,
-  );
+  const node = document.head.querySelector(`${tagName}[${keyName}="${keyValue}"]`);
   if (node && node.getAttribute(attrName) === attrValue) return;
 
   // Remove and create a new tag in order to make it work with bookmarks in Safari
   if (node) {
-    node.parentNode!.removeChild(node);
+    node.parentNode?.removeChild(node);
   }
   if (typeof attrValue === 'string') {
     const nextNode = document.createElement(tagName);

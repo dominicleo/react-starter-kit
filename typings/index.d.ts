@@ -38,7 +38,7 @@ declare module 'isomorphic-style-loader/withStyles' {
   export default _default;
 }
 declare module 'isomorphic-style-loader/useStyles' {
-  const _default: (s1: string, s2?: string, s3?: string, s4?: string, s5?: string) => void;
+  const _default: (s1: any, s2?: any, s3?: any, s4?: any, s5?: any) => void;
   export default _default;
 }
 declare module '*.module.css' {

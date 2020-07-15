@@ -2,17 +2,14 @@ import { Route } from 'universal-router';
 
 const routes: Route = {
   path: '',
-
   children: [
     {
       path: '',
       load: () => import(/* webpackChunkName: 'home' */ '@/pages/home'),
     },
-
     {
       path: '(.*)',
-      load: () =>
-        import(/* webpackChunkName: 'not-found' */ '@/pages/not-found'),
+      load: () => import(/* webpackChunkName: 'not-found' */ '@/pages/not-found'),
     },
   ],
 
@@ -30,7 +27,7 @@ const routes: Route = {
 
 // The error page is available by permanent url for development mode
 if (__DEV__) {
-  routes.children!.unshift({
+  routes.children?.unshift({
     path: '/error',
     action: require('./error').default,
   });

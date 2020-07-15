@@ -1,15 +1,21 @@
 import React from 'react';
-import NotFound from './NotFound';
+import useStyles from 'isomorphic-style-loader/useStyles';
+import s from './index.css';
 
-const title = 'Page Not Found';
+type PropTypes = {
+  title: string;
+};
 
-function action() {
-  return {
-    chunks: ['not-found'],
-    title,
-    component: <NotFound title={title} />,
-    status: 404,
-  };
-}
+const NotFound: React.FC<PropTypes> = props => {
+  useStyles(s);
+  return (
+    <div className={s.root}>
+      <div className={s.container}>
+        <h1>{props.title}</h1>
+        <p>Sorry, the page you were trying to view does not exist.</p>
+      </div>
+    </div>
+  );
+};
 
-export default action;
+export default NotFound;

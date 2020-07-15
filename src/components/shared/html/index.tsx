@@ -8,7 +8,7 @@ interface HtmlProps {
     id: string;
     cssText: string;
   }>;
-
+  stylesheets?: string[];
   scripts?: string[];
   app: any;
   children: string;
@@ -18,6 +18,7 @@ const Html: React.FC<HtmlProps> = ({
   title,
   description,
   styles = [],
+  stylesheets = [],
   scripts = [],
   app,
   children,
@@ -35,19 +36,16 @@ const Html: React.FC<HtmlProps> = ({
 
       <link rel="manifest" href="/site.webmanifest" />
       <link rel="apple-touch-icon" href="/icon.png" />
+      {stylesheets.map(stylesheet => (
+        <link key={stylesheet} rel="stylesheet" type="text/css" href={stylesheet} />
+      ))}
       {styles.map(style => (
-        <style
-          key={style.id}
-          id={style.id}
-          dangerouslySetInnerHTML={{ __html: style.cssText }}
-        />
+        <style key={style.id} id={style.id} dangerouslySetInnerHTML={{ __html: style.cssText }} />
       ))}
     </head>
     <body>
       <div id="app" dangerouslySetInnerHTML={{ __html: children }} />
-      <script
-        dangerouslySetInnerHTML={{ __html: `window.__APP__=${serialize(app)}` }}
-      />
+      <script dangerouslySetInnerHTML={{ __html: `window.__APP__=${serialize(app)}` }} />
 
       {scripts.map(script => (
         <script key={script} src={script} />

@@ -25,8 +25,8 @@ function runServer(): Promise<ChildProcess> {
 
       if (match) {
         server.host = match[1];
-        server.stdout!.removeListener('data', onStdOut);
-        server.stdout!.on('data', x => process.stdout.write(x));
+        server.stdout?.removeListener('data', onStdOut);
+        server.stdout?.on('data', x => process.stdout.write(x));
         pending = false;
         resolve(server);
       }
@@ -43,9 +43,7 @@ function runServer(): Promise<ChildProcess> {
     if (pending) {
       server.once('exit', (code, signal) => {
         if (pending) {
-          throw new Error(
-            `Server terminated unexpectedly with code: ${code} signal: ${signal}`,
-          );
+          throw new Error(`Server terminated unexpectedly with code: ${code} signal: ${signal}`);
         }
       });
     }
