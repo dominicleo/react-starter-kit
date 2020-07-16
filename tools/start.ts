@@ -1,6 +1,7 @@
 import path from 'path';
 import express, { Request, Response, Application } from 'express';
 import browserSync from 'browser-sync';
+import detect from 'detect-port';
 import webpack, { Compiler, Configuration } from 'webpack';
 import webpackDevMiddleware from 'webpack-dev-middleware';
 import webpackHotMiddleware from 'webpack-hot-middleware';
@@ -170,7 +171,17 @@ async function start() {
   appPromiseIsResolved = true;
   appPromiseResolve!();
 
-  const port = options.port ? Number(options.port) : undefined;
+  const port: number = await new Promise((resolve, reject) => {
+    detect(options.port, (error, port) => {
+      if (error) {
+        reject(error);
+      }
+      if (options.port !== port) {
+        console.warn(` 端口: ${options.port} 被占用，系统已分配另一个可用端口：${port}`);
+      }
+      resolve(port);
+    });
+  });
 
   // Launch the development server with Browsersync and HMR
   await new Promise((resolve, reject) =>

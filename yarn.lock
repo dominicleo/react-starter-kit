@@ -1531,6 +1531,11 @@
   dependencies:
     postcss "5 - 7"
 
+"@types/detect-port@^1.3.0":
+  version "1.3.0"
+  resolved "https://registry.npm.taobao.org/@types/detect-port/download/@types/detect-port-1.3.0.tgz#3e9cbd049ec29e84a2ff7852dbc629c81245774c"
+  integrity sha1-Ppy9BJ7CnoSi/3hS28YpyBJFd0w=
+
 "@types/enzyme@^3.10.3":
   version "3.10.5"
   resolved "https://registry.npm.taobao.org/@types/enzyme/download/@types/enzyme-3.10.5.tgz#fe7eeba3550369eed20e7fb565bfb74eec44f1f0"
@@ -4463,6 +4468,14 @@ detect-port-alt@1.1.6:
   version "1.1.6"
   resolved "https://registry.npm.taobao.org/detect-port-alt/download/detect-port-alt-1.1.6.tgz#24707deabe932d4a3cf621302027c2b266568275"
   integrity sha1-JHB96r6TLUo89iEwICfCsmZWgnU=
+  dependencies:
+    address "^1.0.1"
+    debug "^2.6.0"
+
+detect-port@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.npm.taobao.org/detect-port/download/detect-port-1.3.0.tgz#d9c40e9accadd4df5cac6a782aefd014d573d1f1"
+  integrity sha1-2cQOmsyt1N9crGp4Ku/QFNVz0fE=
   dependencies:
     address "^1.0.1"
     debug "^2.6.0"
