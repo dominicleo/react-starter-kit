@@ -1,4 +1,4 @@
-import webpackConfig from './webpack.config';
+import webpackConfig from './config/webpack.config';
 import runWebpack from './lib/runWebpack';
 
 /**

@@ -6,9 +6,10 @@ import webpack, { Compiler, Configuration } from 'webpack';
 import webpackDevMiddleware from 'webpack-dev-middleware';
 import webpackHotMiddleware from 'webpack-hot-middleware';
 import errorOverlayMiddleware from 'react-dev-utils/errorOverlayMiddleware';
-import webpackConfig from './webpack.config';
+import webpackConfig from './config/webpack.config';
 import run, { options } from './run';
 import clean from './clean';
+import logger from './lib/logger';
 
 const { debug } = options;
 
@@ -18,7 +19,11 @@ const watchOptions = {};
 function createCompilationPromise(name: string, compiler: Compiler) {
   return new Promise((resolve, reject) => {
     compiler.hooks.done.tap(name, stats => {
-      stats.hasErrors() ? reject(new Error('Compilation failed!')) : resolve(stats);
+      if (stats.hasErrors()) {
+        reject(new Error(`${name} Compilation failed!\n${stats.toString({ colors: true })}`));
+      } else {
+        resolve(stats);
+      }
     });
   });
 }
@@ -97,10 +102,9 @@ async function start() {
     appPromise.then(() => app.handle(req, res)).catch(error => console.error(error));
   });
 
-  function checkForUpdate(fromUpdate?: boolean) {
-    const hmrPrefix = '[\x1b[35mHMR\x1b[0m] ';
+  function checkForUpdate() {
     if (!hot) {
-      throw new Error(`${hmrPrefix}Hot Module Replacement is disabled.`);
+      throw new Error(`Hot Module Replacement is disabled.`);
     }
     if (hot.status() !== 'idle') {
       return Promise.resolve();
@@ -109,26 +113,15 @@ async function start() {
       .check(true)
       .then((updatedModules: string[]) => {
         if (!updatedModules) {
-          if (fromUpdate) {
-            console.info(`${hmrPrefix}Update applied.`);
-          }
           return;
         }
-        if (updatedModules.length === 0) {
-          console.info(`${hmrPrefix}Nothing hot updated.`);
-        } else {
-          console.info(`${hmrPrefix}Updated modules:`);
-          updatedModules.forEach(moduleId => console.info(`${hmrPrefix} - ${moduleId}`));
-          checkForUpdate(true);
+        if (updatedModules.length !== 0) {
+          checkForUpdate();
         }
       })
-      .catch((error: Error) => {
+      .catch(() => {
         if (['abort', 'fail'].includes(hot.status())) {
-          console.warn(`${hmrPrefix}Cannot apply update.`);
           reloadApp();
-          console.warn(`${hmrPrefix}App has been reloaded.`);
-        } else {
-          console.warn(`${hmrPrefix}Update failed: ${error.stack || error.message}`);
         }
       });
   }
@@ -148,6 +141,8 @@ async function start() {
   reloadApp();
   appPromiseIsResolved = true;
   appPromiseResolve!();
+
+  logger.wait('Launching server...');
 
   const port: number = await new Promise((resolve, reject) => {
     detect(options.port, (error, port) => {

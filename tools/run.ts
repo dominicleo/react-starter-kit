@@ -1,3 +1,4 @@
+import path from 'path';
 import program from 'commander';
 
 function run(task: (args: any) => Promise<any>, options?: any) {
@@ -6,6 +7,7 @@ function run(task: (args: any) => Promise<any>, options?: any) {
 
 export const options = program.opts();
 
+options.dirname = path.resolve(__dirname, '..');
 options.debug = !options.release;
 
 export default run;

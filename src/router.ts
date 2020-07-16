@@ -32,6 +32,6 @@ export default new UniversalRouter(routes, {
       return context.route.action(context, params);
     }
 
-    return undefined;
+    return context.route;
   },
 });

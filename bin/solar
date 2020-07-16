@@ -1,6 +1,14 @@
 #!/usr/bin/env node
 const program = require('commander');
 const { version } = require('../package.json');
+const PrettyError = require('pretty-error');
+
+const pe = new PrettyError();
+
+process.on('unhandledRejection', (reason, p) => {
+  console.error(pe.render(reason, p));
+  process.exit(1);
+});
 
 program
   .name(' ')
@@ -48,6 +56,6 @@ require('@babel/register')({
   require('../tools/run')
     .default(module, options)
     .catch(error => {
-      console.log(error);
+      console.error(pe.render(error));
     });
 })();

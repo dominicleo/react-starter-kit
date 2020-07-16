@@ -4,7 +4,7 @@ import s from './index.module.less';
 
 const Page = () => {
   useStyles(s);
-  return <>search</>;
+  return <>test</>;
 };
 
 export default Page;

@@ -22,10 +22,13 @@ const routes: Route = {
           load: () => import(/* webpackChunkName: 'search' */ '@/pages/search'),
         },
         {
-          path: '',
+          path: '/user',
           component: LoginRegister,
-          redirect: '/login',
           children: [
+            {
+              path: '',
+              redirect: '/user/login',
+            },
             {
               path: '/login',
               title: '登录',

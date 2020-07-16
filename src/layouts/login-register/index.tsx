@@ -10,12 +10,12 @@ const TABS = [
   {
     key: 'login',
     label: '登录账号',
-    pathname: '/login',
+    pathname: '/user/login',
   },
   {
     key: 'register',
     label: '注册账号',
-    pathname: '/register',
+    pathname: '/user/register',
   },
 ];
 

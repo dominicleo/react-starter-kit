@@ -24,7 +24,7 @@ const Page: React.FC<RouteContext> = () => {
         <Link to="/">找回密码</Link>
         <Divider type="vertical" />
         还没有注册账号？
-        <Link to="/register">立即注册</Link>
+        <Link to="/user/register">立即注册</Link>
       </Form.Item>
     </Form>
   );

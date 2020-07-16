@@ -9,18 +9,18 @@ import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 import TerserPlugin from 'terser-webpack-plugin';
 import WebpackBar from 'webpackbar';
 // import AutoDllPlugin from 'autodll-webpack-plugin';
-import overrideRules from './lib/overrideRules';
-import pkg from '../package.json';
+import overrideRules from '../lib/overrideRules';
+import pkg from '../../package.json';
 import postcssConfig from './postcss.config';
-import { options } from './run';
-
-const ROOT_DIR = path.resolve(__dirname, '..');
-const resolvePath = (...args: string[]) => path.resolve(ROOT_DIR, ...args);
-const SRC_DIR = resolvePath('src');
-const BUILD_DIR = resolvePath('build');
+import { options } from '../run';
 
 const debug = !options.release;
 const { verbose, analyze } = options;
+
+const ROOT_DIR = options.dirname;
+const resolvePath = (...args: string[]) => path.resolve(ROOT_DIR, ...args);
+const SRC_DIR = resolvePath('src');
+const BUILD_DIR = resolvePath('build');
 
 const REG_SCRIPT = /\.(ts|tsx|js|jsx|mjs)$/;
 const REG_STYLE = /\.(css|less|styl|scss|sass|sss)$/;
