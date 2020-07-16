@@ -7,6 +7,7 @@ import nodeExternals from 'webpack-node-externals';
 import cssnano from 'cssnano';
 import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
 import TerserPlugin from 'terser-webpack-plugin';
+import WebpackBar from 'webpackbar';
 // import AutoDllPlugin from 'autodll-webpack-plugin';
 import overrideRules from './lib/overrideRules';
 import pkg from '../package.json';
@@ -160,6 +161,8 @@ const config = {
               sourceMap: debug,
               modules: {
                 localIdentName: debug ? '[name]-[local]-[hash:base64:5]' : '[hash:base64:5]',
+                auto: (resourcePath: string) =>
+                  /\.module\.(css|less|styl|scss|sass|sss)$/.test(resourcePath),
               },
             },
           },
@@ -302,6 +305,11 @@ const clientConfig = {
   },
 
   plugins: [
+    // Elegant ProgressBar and Profiler for Webpack
+    // https://github.com/nuxt/webpackbar
+    new WebpackBar({
+      name: 'client',
+    }),
     // Define free variables
     // https://webpack.js.org/plugins/define-plugin/
     new webpack.DefinePlugin({
@@ -472,6 +480,12 @@ const serverConfig = {
   ],
 
   plugins: [
+    // Elegant ProgressBar and Profiler for Webpack
+    // https://github.com/nuxt/webpackbar
+    new WebpackBar({
+      name: 'server',
+      color: 'orange',
+    }),
     // Define free variables
     // https://webpack.js.org/plugins/define-plugin/
     new webpack.DefinePlugin({

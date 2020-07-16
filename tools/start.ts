@@ -7,33 +7,18 @@ import webpackDevMiddleware from 'webpack-dev-middleware';
 import webpackHotMiddleware from 'webpack-hot-middleware';
 import errorOverlayMiddleware from 'react-dev-utils/errorOverlayMiddleware';
 import webpackConfig from './webpack.config';
-import run, { format, options } from './run';
+import run, { options } from './run';
 import clean from './clean';
 
-const debug = !options.release;
+const { debug } = options;
 
 // https://webpack.js.org/configuration/watch/#watchoptions
 const watchOptions = {};
 
-function createCompilationPromise(name: string, compiler: Compiler, config: Configuration) {
+function createCompilationPromise(name: string, compiler: Compiler) {
   return new Promise((resolve, reject) => {
-    let timeStart = new Date();
-    compiler.hooks.compile.tap(name, () => {
-      timeStart = new Date();
-      console.info(`[${format(timeStart)}] Compiling '${name}'...`);
-    });
-
     compiler.hooks.done.tap(name, stats => {
-      console.info(stats.toString(config.stats));
-      const timeEnd = new Date();
-      const time = timeEnd.getTime() - timeStart.getTime();
-      if (stats.hasErrors()) {
-        console.info(`[${format(timeEnd)}] Failed to compile '${name}' after ${time} ms`);
-        reject(new Error('Compilation failed!'));
-      } else {
-        console.info(`[${format(timeEnd)}] Finished '${name}' compilation after ${time} ms`);
-        resolve(stats);
-      }
+      stats.hasErrors() ? reject(new Error('Compilation failed!')) : resolve(stats);
     });
   });
 }
@@ -75,8 +60,8 @@ async function start() {
   const multiCompiler = webpack([clientConfig, serverConfig] as Configuration[]);
   const clientCompiler = multiCompiler.compilers.find(({ name }) => name === 'client')!;
   const serverCompiler = multiCompiler.compilers.find(({ name }) => name === 'server')!;
-  const clientPromise = createCompilationPromise('client', clientCompiler, clientConfig);
-  const serverPromise = createCompilationPromise('server', serverCompiler, serverConfig);
+  const clientPromise = createCompilationPromise('client', clientCompiler);
+  const serverPromise = createCompilationPromise('server', serverCompiler);
 
   // https://github.com/webpack/webpack-dev-middleware
   server.use(
@@ -94,7 +79,6 @@ async function start() {
   let hot: any;
   function reloadApp() {
     delete require.cache[require.resolve('../build/server')];
-    // eslint-disable-next-line global-require
     const compiled = require('../build/server');
     app = compiled.default;
     hot = compiled.hot;
@@ -106,7 +90,6 @@ async function start() {
   serverCompiler.hooks.compile.tap('server', () => {
     if (!appPromiseIsResolved) return;
     appPromiseIsResolved = false;
-    // eslint-disable-next-line no-return-assign
     appPromise = new Promise(resolve => (appPromiseResolve = resolve));
   });
 
@@ -159,14 +142,9 @@ async function start() {
     }
   });
 
-  // Wait until both client-side and server-side bundles are ready
   await clientPromise;
   await serverPromise;
 
-  const timeStart = new Date();
-  console.info(`[${format(timeStart)}] Launching server...`);
-
-  // Load compiled src/server.js as a middleware
   reloadApp();
   appPromiseIsResolved = true;
   appPromiseResolve!();
@@ -187,7 +165,6 @@ async function start() {
   await new Promise((resolve, reject) =>
     browserSync.create().init(
       {
-        // https://www.browsersync.io/docs/options
         server: { baseDir: '../public' },
         middleware: [server],
         open: options.silent ? false : 'local',
@@ -199,9 +176,6 @@ async function start() {
     ),
   );
 
-  const timeEnd = new Date();
-  const time = timeEnd.getTime() - timeStart.getTime();
-  console.info(`[${format(timeEnd)}] Server launched after ${time} ms`);
   return server;
 }
 
