@@ -1,6 +1,7 @@
 import path from 'path';
 import chokidar from 'chokidar';
 import { writeFile, copyFile, makeDir, copyDir, cleanDir } from './lib/fs';
+import { format } from './run';
 import pkg from '../package.json';
 
 /**
@@ -50,7 +51,7 @@ async function copy() {
       }
       const end = new Date();
       const time = end.getTime() - start.getTime();
-      console.info(`${event} '${dist}' after ${time} ms`);
+      console.info(`[${format(end)}] ${event} '${dist}' after ${time} ms`);
     });
   }
 }

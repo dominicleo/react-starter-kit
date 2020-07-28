@@ -31,6 +31,8 @@ declare module 'react-notifications-component';
 declare module 'react-error-overlay';
 declare module 'react-test-renderer';
 declare module 'terminate';
+declare module 'less-vars-to-js';
+declare module 'is-boolean-object';
 declare module 'isomorphic-style-loader/withStyles' {
   const _default: <T>(
     s1: string,

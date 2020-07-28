@@ -4,6 +4,7 @@ import { APP_NAME } from '@/constants/common';
 import useStyles from 'isomorphic-style-loader/useStyles';
 import s from './index.module.less';
 import Link from '@/components/link';
+import ProLayout from '@ant-design/pro-layout';
 
 const { Header, Content, Footer } = Layout;
 const { Search } = Input;
@@ -12,6 +13,7 @@ const BasicLayout: React.FC = props => {
   useStyles(s);
   return (
     <Layout className={s.layout}>
+      <ProLayout />
       <Header className={s.header}>
         <Row gutter={24}>
           <Col flex={1}>

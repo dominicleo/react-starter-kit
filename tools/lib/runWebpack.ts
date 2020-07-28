@@ -1,13 +1,10 @@
 import webpack from 'webpack';
 
-export default function runWebpack(
-  config: any,
-  statsInfo: webpack.Options.Stats,
-) {
+export default function runWebpack(config: any, statsInfo: webpack.Options.Stats) {
   return new Promise((resolve, reject) => {
-    webpack(config).run((err, stats) => {
-      if (err) {
-        return reject(err);
+    webpack(config).run((error, stats) => {
+      if (error) {
+        return reject(error);
       }
 
       console.info(stats.toString(statsInfo));

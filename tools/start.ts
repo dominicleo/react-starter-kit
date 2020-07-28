@@ -7,21 +7,31 @@ import webpackDevMiddleware from 'webpack-dev-middleware';
 import webpackHotMiddleware from 'webpack-hot-middleware';
 import errorOverlayMiddleware from 'react-dev-utils/errorOverlayMiddleware';
 import webpackConfig from './config/webpack.config';
-import run, { options } from './run';
+import run, { format, options } from './run';
 import clean from './clean';
-import logger from './lib/logger';
 
 const { debug } = options;
 
 // https://webpack.js.org/configuration/watch/#watchoptions
 const watchOptions = {};
 
-function createCompilationPromise(name: string, compiler: Compiler) {
+function createCompilationPromise(name: string, compiler: Compiler, config: Configuration) {
   return new Promise((resolve, reject) => {
+    let timeStart = new Date();
+    compiler.hooks.compile.tap(name, () => {
+      timeStart = new Date();
+      console.info(`[${format(timeStart)}] Compiling '${name}'...`);
+    });
+
     compiler.hooks.done.tap(name, stats => {
+      console.info(stats.toString(config.stats));
+      const timeEnd = new Date();
+      const time = timeEnd.getTime() - timeStart.getTime();
       if (stats.hasErrors()) {
-        reject(new Error(`${name} Compilation failed!\n${stats.toString({ colors: true })}`));
+        console.info(`[${format(timeEnd)}] Failed to compile '${name}' after ${time} ms`);
+        reject(new Error('Compilation failed!'));
       } else {
+        console.info(`[${format(timeEnd)}] Finished '${name}' compilation after ${time} ms`);
         resolve(stats);
       }
     });
@@ -55,7 +65,7 @@ async function start() {
   server = express();
   server.set('x-powered-by', false);
   server.use(errorOverlayMiddleware());
-  server.use(express.static(path.resolve(__dirname, '../public')));
+  server.use(express.static(path.resolve(options.dirname, 'public')));
 
   const clientConfig = getWebpackConfig('client');
   const serverConfig = getWebpackConfig('server');
@@ -65,8 +75,8 @@ async function start() {
   const multiCompiler = webpack([clientConfig, serverConfig] as Configuration[]);
   const clientCompiler = multiCompiler.compilers.find(({ name }) => name === 'client')!;
   const serverCompiler = multiCompiler.compilers.find(({ name }) => name === 'server')!;
-  const clientPromise = createCompilationPromise('client', clientCompiler);
-  const serverPromise = createCompilationPromise('server', serverCompiler);
+  const clientPromise = createCompilationPromise('client', clientCompiler, clientConfig);
+  const serverPromise = createCompilationPromise('server', serverCompiler, serverConfig);
 
   // https://github.com/webpack/webpack-dev-middleware
   server.use(
@@ -102,9 +112,10 @@ async function start() {
     appPromise.then(() => app.handle(req, res)).catch(error => console.error(error));
   });
 
-  function checkForUpdate() {
+  function checkForUpdate(fromUpdate?: boolean) {
+    const hmrPrefix = '[\x1b[35mHMR\x1b[0m] ';
     if (!hot) {
-      throw new Error(`Hot Module Replacement is disabled.`);
+      throw new Error(`${hmrPrefix}Hot Module Replacement is disabled.`);
     }
     if (hot.status() !== 'idle') {
       return Promise.resolve();
@@ -113,15 +124,26 @@ async function start() {
       .check(true)
       .then((updatedModules: string[]) => {
         if (!updatedModules) {
+          if (fromUpdate) {
+            console.info(`${hmrPrefix}Update applied.`);
+          }
           return;
         }
-        if (updatedModules.length !== 0) {
-          checkForUpdate();
+        if (updatedModules.length === 0) {
+          console.info(`${hmrPrefix}Nothing hot updated.`);
+        } else {
+          console.info(`${hmrPrefix}Updated modules:`);
+          updatedModules.forEach(moduleId => console.info(`${hmrPrefix} - ${moduleId}`));
+          checkForUpdate(true);
         }
       })
-      .catch(() => {
+      .catch((error: Error) => {
         if (['abort', 'fail'].includes(hot.status())) {
+          console.warn(`${hmrPrefix}Cannot apply update.`);
           reloadApp();
+          console.warn(`${hmrPrefix}App has been reloaded.`);
+        } else {
+          console.warn(`${hmrPrefix}Update failed: ${error.stack || error.message}`);
         }
       });
   }
@@ -135,14 +157,14 @@ async function start() {
     }
   });
 
-  await clientPromise;
-  await serverPromise;
+  await Promise.all([clientPromise, serverPromise]);
 
   reloadApp();
   appPromiseIsResolved = true;
   appPromiseResolve!();
 
-  logger.wait('Launching server...');
+  const timeStart = new Date();
+  console.info(`[${format(timeStart)}] Launching server...`);
 
   const port: number = await new Promise((resolve, reject) => {
     detect(options.port, (error, port) => {
@@ -150,7 +172,9 @@ async function start() {
         reject(error);
       }
       if (options.port !== port) {
-        console.warn(` 端口: ${options.port} 被占用，系统已分配另一个可用端口：${port}`);
+        console.warn(
+          `[${format(new Date())}] 端口: ${options.port} 被占用，系统已分配另一个可用端口：${port}`,
+        );
       }
       resolve(port);
     });
@@ -170,6 +194,10 @@ async function start() {
       (error, bs) => (error ? reject(error) : resolve(bs)),
     ),
   );
+
+  const timeEnd = new Date();
+  const time = timeEnd.getTime() - timeStart.getTime();
+  console.info(`[${format(timeEnd)}] Server launched after ${time} ms`);
 
   return server;
 }

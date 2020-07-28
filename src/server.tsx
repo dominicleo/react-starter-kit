@@ -13,8 +13,12 @@ import { ErrorPageWithoutStyle } from '@/pages/error/ErrorPage';
 import errorPageStyle from '@/pages/error/ErrorPage.css';
 import router from './router';
 // @ts-ignore
+import bundle from './bundle-manifest.json';
+// @ts-ignore
 import chunks from './chunk-manifest.json';
 import config from './config';
+
+const assets = Object.assign(chunks, bundle);
 
 process.on('unhandledRejection', (reason, p) => {
   console.error('Unhandled Rejection at:', p, 'reason:', reason);
@@ -90,8 +94,8 @@ app.get('*', async (request, response, next) => {
     const scripts = new Set();
 
     const addChunk = (chunk: string) => {
-      if (chunks[chunk]) {
-        chunks[chunk].forEach((asset: any) => {
+      if (assets[chunk]) {
+        assets[chunk].forEach((asset: any) => {
           /\.css$/i.test(asset) && stylesheets.add(asset);
           /\.js$/i.test(asset) && scripts.add(asset);
         });
@@ -99,6 +103,8 @@ app.get('*', async (request, response, next) => {
         throw new Error(`Chunk with name '${chunk}' cannot be found`);
       }
     };
+
+    addChunk('bundle');
     addChunk('client');
     if (route.chunk) addChunk(route.chunk);
     if (route.chunks) route.chunks.forEach(addChunk);

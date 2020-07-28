@@ -10,6 +10,8 @@ declare module 'universal-router' {
     chunks?: string[];
     load?: () => Promise<any>;
     component?: React.ReactNode;
+    /** 菜单排序 */
+    sortOrder?: number;
   }
 
   interface RouteContext<C extends Context = any, R = any> extends RouteContext {

@@ -1,21 +1,24 @@
-import fs from 'fs';
-import path from 'path';
-import webpack from 'webpack';
-import MiniCssExtractPlugin from 'mini-css-extract-plugin';
-import WebpackAssetsManifest from 'webpack-assets-manifest';
-import nodeExternals from 'webpack-node-externals';
+import AutoDllPlugin from 'autodll-webpack-plugin';
 import cssnano from 'cssnano';
-import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
+import fs from 'fs';
+import HardSourceWebpackPlugin from 'hard-source-webpack-plugin';
+import lessToJS from 'less-vars-to-js';
+import MiniCssExtractPlugin from 'mini-css-extract-plugin';
+import OptimizeCssAssetsPlugin from 'optimize-css-assets-webpack-plugin';
+import path from 'path';
 import TerserPlugin from 'terser-webpack-plugin';
-import WebpackBar from 'webpackbar';
-// import AutoDllPlugin from 'autodll-webpack-plugin';
-import overrideRules from '../lib/overrideRules';
-import pkg from '../../package.json';
-import postcssConfig from './postcss.config';
-import { options } from '../run';
+import webpack from 'webpack';
+import WebpackAssetsManifest from 'webpack-assets-manifest';
+import { BundleAnalyzerPlugin } from 'webpack-bundle-analyzer';
+import nodeExternals from 'webpack-node-externals';
 
-const debug = !options.release;
-const { verbose, analyze } = options;
+import pkg from '../../package.json';
+import overrideRules from '../lib/overrideRules';
+import { options } from '../run';
+import postcssConfig from './postcss.config';
+
+const { debug, analyze } = options;
+const verbose = !!options.verbose;
 
 const ROOT_DIR = options.dirname;
 const resolvePath = (...args: string[]) => path.resolve(ROOT_DIR, ...args);
@@ -29,20 +32,39 @@ const REG_ANTD = /[\\/]node_modules[\\/].*(antd|antd-mobile)/;
 
 const staticAssetName = debug ? '[path][name].[ext]?[hash:8]' : '[hash:8].[ext]';
 
-// Common configuration chunk to be used for both
-// client-side (client.js) and server-side (server.js) bundles
+const getChunkFiles = (manifest: WebpackAssetsManifest, stats: WebpackAssetsManifest.AnyObject) => {
+  const fileFilter = (file: string) => !file.endsWith('.map');
+  const addPath = (file: string) => manifest.getPublicPath(file);
+  const chunkFiles = stats.compilation.chunkGroups.reduce((acc: any[], c: any) => {
+    acc[c.name] = [
+      ...(acc[c.name] || []),
+      ...c.chunks.reduce(
+        (files: any[], cc: any) => [...files, ...cc.files.filter(fileFilter).map(addPath)],
+        [],
+      ),
+    ];
+    return acc;
+  }, Object.create(null));
+  return chunkFiles;
+};
+
+const themeVariables = lessToJS(
+  fs.readFileSync(resolvePath(SRC_DIR, 'components/style/themes/default.less'), 'utf8'),
+);
 
 const config = {
   context: ROOT_DIR,
 
   mode: debug ? 'development' : 'production',
 
+  cache: debug,
+
   output: {
     path: resolvePath(BUILD_DIR, 'public/assets'),
     publicPath: '/assets/',
     pathinfo: verbose,
-    filename: debug ? '[name].js' : '[name].[chunkhash:8].js',
-    chunkFilename: debug ? '[name].chunk.js' : '[name].[chunkhash:8].chunk.js',
+    filename: debug ? 'js/[name].js' : 'js/[name].[chunkhash:8].js',
+    chunkFilename: debug ? 'js/[name].chunk.js' : 'js/[name].[chunkhash:8].chunk.js',
     // Point sourcemap entries to original disk location (format as URL on Windows)
     devtoolModuleFilenameTemplate: (info: any) =>
       path.resolve(info.absoluteResourcePath).replace(/\\/g, '/'),
@@ -88,6 +110,9 @@ const config = {
             '@babel/preset-typescript',
           ],
           plugins: [
+            // Experimental ECMAScript proposals
+            '@babel/plugin-proposal-class-properties',
+            '@babel/plugin-syntax-dynamic-import',
             // https://github.com/babel/babel/tree/main/packages/babel-plugin-proposal-nullish-coalescing-operator
             // Remove nullish coalescing operator
             '@babel/plugin-proposal-nullish-coalescing-operator',
@@ -105,6 +130,7 @@ const config = {
           {
             loader: MiniCssExtractPlugin.loader,
           },
+
           {
             loader: 'css-loader',
             options: {
@@ -112,8 +138,8 @@ const config = {
             },
           },
           {
-            exclude: SRC_DIR,
             loader: 'postcss-loader',
+            exclude: SRC_DIR,
             options: {
               plugins: [cssnano()],
             },
@@ -124,6 +150,7 @@ const config = {
             options: {
               lessOptions: {
                 javascriptEnabled: true,
+                modifyVars: themeVariables,
               },
             },
           },
@@ -153,6 +180,7 @@ const config = {
               plugins: [cssnano()],
             },
           },
+
           {
             include: SRC_DIR,
             loader: 'css-loader',
@@ -177,6 +205,7 @@ const config = {
               lessOptions: {
                 javascriptEnabled: true,
               },
+              prependData: `@import '~@/components/style/themes/default.less';`,
             },
           },
         ],
@@ -223,7 +252,7 @@ const config = {
 
       {
         test: /\.md$/,
-        loader: path.resolve(__dirname, './lib/markdown-loader'),
+        loader: resolvePath('tools/lib/markdown-loader'),
       },
 
       {
@@ -245,11 +274,37 @@ const config = {
     ],
   },
 
+  plugins: [
+    ...(debug
+      ? []
+      : [
+          // https://github.com/mzgoddard/hard-source-webpack-plugin
+          // Hard cache the source of modules in webpack.
+          new HardSourceWebpackPlugin({
+            environmentHash: {
+              root: process.cwd(),
+              directories: ['config'],
+              files: ['package-lock.json', 'yarn.lock'],
+            },
+            info: {
+              mode: 'none',
+              level: verbose ? 'debug' : 'warn',
+            },
+          }),
+          new HardSourceWebpackPlugin.ExcludeModulePlugin([
+            {
+              test: /mini-css-extract-plugin[\\/]dist[\\/]loader/,
+            },
+          ]),
+        ]),
+  ],
+
   resolve: {
     alias: {
       '@': SRC_DIR,
     },
     extensions: ['.ts', '.tsx', '.js', '.jsx', '.json'],
+    modules: [SRC_DIR, resolvePath('node_modules')],
   },
 
   resolveLoader: {
@@ -257,8 +312,6 @@ const config = {
   },
 
   bail: !debug,
-
-  cache: debug,
 
   stats: {
     cached: verbose,
@@ -271,6 +324,7 @@ const config = {
     reasons: debug,
     timings: true,
     version: verbose,
+    children: verbose,
   },
 
   devtool: debug ? 'cheap-module-inline-source-map' : 'source-map',
@@ -290,14 +344,22 @@ const clientConfig = {
     ...config.module,
     rules: overrideRules(config.module?.rules, (rule: any) => {
       if (rule.loader === 'babel-loader') {
+        const { loader, options, ...restRule } = rule;
+
         return {
-          ...rule,
-          options: {
-            ...rule.options,
-            plugins: [['import', { libraryName: 'antd', style: true }, 'antd']].concat(
-              rule.options.plugins,
-            ),
-          },
+          ...restRule,
+          use: [
+            'thread-loader',
+            {
+              loader,
+              options: {
+                ...options,
+                plugins: [['import', { libraryName: 'antd', style: true }, 'antd']].concat(
+                  rule.options.plugins,
+                ),
+              },
+            },
+          ],
         };
       }
       return rule;
@@ -305,11 +367,7 @@ const clientConfig = {
   },
 
   plugins: [
-    // Elegant ProgressBar and Profiler for Webpack
-    // https://github.com/nuxt/webpackbar
-    new WebpackBar({
-      name: 'client',
-    }),
+    ...config.plugins,
     // Define free variables
     // https://webpack.js.org/plugins/define-plugin/
     new webpack.DefinePlugin({
@@ -320,6 +378,7 @@ const clientConfig = {
     // Lightweight CSS extraction plugin
     // https://github.com/webpack-contrib/mini-css-extract-plugin
     new MiniCssExtractPlugin({
+      ignoreOrder: true,
       filename: debug ? 'css/[name].css' : 'css/[name].[chunkhash:8].css',
     }),
 
@@ -335,21 +394,9 @@ const clientConfig = {
         return { key, value };
       },
       done: (manifest: any, stats: any) => {
-        // Write chunk-manifest.json.json
         const chunkFileName = `${BUILD_DIR}/chunk-manifest.json`;
         try {
-          const fileFilter = (file: string) => !file.endsWith('.map');
-          const addPath = (file: string) => manifest.getPublicPath(file);
-          const chunkFiles = stats.compilation.chunkGroups.reduce((acc: any[], c: any) => {
-            acc[c.name] = [
-              ...(acc[c.name] || []),
-              ...c.chunks.reduce(
-                (files: any[], cc: any) => [...files, ...cc.files.filter(fileFilter).map(addPath)],
-                [],
-              ),
-            ];
-            return acc;
-          }, Object.create(null));
+          const chunkFiles = getChunkFiles(manifest, stats);
           fs.writeFileSync(chunkFileName, JSON.stringify(chunkFiles, null, 2));
         } catch (err) {
           console.error(`ERROR: Cannot write ${chunkFileName}: `, err);
@@ -358,9 +405,58 @@ const clientConfig = {
       },
     }),
 
+    // Webpack's DllPlugin without the boilerplate
+    // https://github.com/asfktz/autodll-webpack-plugin
+    new AutoDllPlugin({
+      debug: verbose,
+      path: 'js',
+      filename: debug ? '[name].js' : '[name].[chunkhash:8].js',
+      entry: {
+        bundle: ['react', 'react-dom', 'universal-router', 'history'],
+      },
+      plugins: [
+        // Emit a file with assets paths
+        // https://github.com/webdeveric/webpack-assets-manifest#options
+        new WebpackAssetsManifest({
+          publicPath: '/assets/js/',
+          customize: ({ key, value }: { key: string; value: string }) => {
+            // You can prevent adding items to the manifest by returning false.
+            if (key.toLowerCase().endsWith('.map')) return false;
+            return { key, value };
+          },
+          done: (manifest: any, stats: any) => {
+            const chunkFileName = `${BUILD_DIR}/bundle-manifest.json`;
+            try {
+              const chunkFiles = getChunkFiles(manifest, stats);
+              fs.writeFileSync(chunkFileName, JSON.stringify(chunkFiles, null, 2));
+            } catch (err) {
+              console.error(`ERROR: Cannot write ${chunkFileName}: `, err);
+              if (!debug) process.exit(1);
+            }
+          },
+        }),
+      ],
+    }),
+
     ...(debug
       ? []
       : [
+          // A Webpack plugin to optimize \ minimize CSS assets.
+          // https://github.com/NMFR/optimize-css-assets-webpack-plugin
+          new OptimizeCssAssetsPlugin({
+            cssProcessor: cssnano,
+            cssProcessorOptions: {
+              safe: true,
+              autoprefixer: {
+                disable: true,
+              },
+              mergeLonghand: false,
+              discardComments: {
+                removeAll: true,
+              },
+            },
+            canPrint: true,
+          }),
           // Webpack Bundle Analyzer
           // https://github.com/th0r/webpack-bundle-analyzer
           ...(analyze ? [new BundleAnalyzerPlugin()] : []),
@@ -374,6 +470,16 @@ const clientConfig = {
           chunks: 'initial',
           test: /[\\/]node_modules[\\/]/,
           name: 'vendors',
+        },
+        antd: {
+          name: 'antd',
+          priority: 15,
+          test: REG_ANTD,
+        },
+        'antd-icon': {
+          name: 'antd-icon',
+          priority: 16,
+          test: /[\\/]node_modules[\\/].*(@ant-design\/icons)/,
         },
       },
     },
@@ -429,26 +535,33 @@ const serverConfig = {
     rules: overrideRules(config.module.rules, (rule: any) => {
       // Override babel-preset-env configuration for Node.js
       if (rule.loader === 'babel-loader') {
+        const { loader, options, ...restRule } = rule;
         return {
-          ...rule,
-          options: {
-            ...rule.options,
-            presets: rule.options.presets.map((preset: any) =>
-              preset[0] !== '@babel/preset-env'
-                ? preset
-                : [
-                    '@babel/preset-env',
-                    {
-                      targets: {
-                        node: 'current',
-                      },
-                      modules: false,
-                      useBuiltIns: false,
-                      debug: false,
-                    },
-                  ],
-            ),
-          },
+          ...restRule,
+          use: [
+            'thread-loader',
+            {
+              loader,
+              options: {
+                ...options,
+                presets: rule.options.presets.map((preset: any) =>
+                  preset[0] !== '@babel/preset-env'
+                    ? preset
+                    : [
+                        '@babel/preset-env',
+                        {
+                          targets: {
+                            node: 'current',
+                          },
+                          modules: false,
+                          useBuiltIns: false,
+                          debug: false,
+                        },
+                      ],
+                ),
+              },
+            },
+          ],
         };
       }
 
@@ -472,20 +585,15 @@ const serverConfig = {
   },
 
   externals: [
+    './bundle-manifest.json',
     './chunk-manifest.json',
-    './asset-manifest.json',
     nodeExternals({
       whitelist: [REG_STYLE, REG_IMAGE],
     }),
   ],
 
   plugins: [
-    // Elegant ProgressBar and Profiler for Webpack
-    // https://github.com/nuxt/webpackbar
-    new WebpackBar({
-      name: 'server',
-      color: 'orange',
-    }),
+    ...config.plugins,
     // Define free variables
     // https://webpack.js.org/plugins/define-plugin/
     new webpack.DefinePlugin({

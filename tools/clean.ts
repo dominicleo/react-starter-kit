@@ -8,7 +8,7 @@ function clean() {
     cleanDir('build/*', {
       nosort: true,
       dot: true,
-      ignore: ['build/.git'],
+      ignore: ['build/.git', 'build/bundle-manifest.json'],
     }),
   ]);
 }

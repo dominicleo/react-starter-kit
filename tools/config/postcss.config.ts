@@ -1,4 +1,4 @@
-const isDebug = !process.argv.includes('--release');
+const { debug } = require('../run').options;
 const pkg = require('../../package.json');
 
 const config = {
@@ -16,7 +16,7 @@ const config = {
     require('pleeease-filters')(),
     // Generate pixel fallback for "rem" units, e.g. div { margin: 2.5rem 2px 3em 100%; }
     // https://github.com/robwierzbowski/node-pixrem
-    require('pixrem')(),
+    // require('pixrem')(),
     // Postcss flexbox bug fixer
     // https://github.com/luisrudge/postcss-flexbugs-fixes
     require('postcss-flexbugs-fixes')(),
@@ -30,7 +30,7 @@ const config = {
     }),
     // CSS Nano options http://cssnano.co/
     require('cssnano')(
-      isDebug
+      debug
         ? false
         : {
             discardComments: { removeAll: true },
