@@ -1,5 +1,6 @@
 import AutoDllPlugin from 'autodll-webpack-plugin';
 import cssnano from 'cssnano';
+import ExtractCssChunks from 'extract-css-chunks-webpack-plugin';
 import fs from 'fs';
 import HardSourceWebpackPlugin from 'hard-source-webpack-plugin';
 import lessToJS from 'less-vars-to-js';
@@ -52,6 +53,60 @@ const themeVariables = lessToJS(
   fs.readFileSync(resolvePath(SRC_DIR, 'components/style/themes/default.less'), 'utf8'),
 );
 
+const css = (name: string) => {
+  const isServer = name === 'server';
+  return {
+    test: REG_STYLE,
+    exclude: [REG_ANTD],
+    rules: [
+      !isServer && { loader: ExtractCssChunks.loader },
+      {
+        exclude: SRC_DIR,
+        loader: 'css-loader',
+        options: {
+          sourceMap: debug,
+        },
+      },
+      {
+        exclude: SRC_DIR,
+        loader: 'postcss-loader',
+        options: {
+          plugins: [cssnano()],
+        },
+      },
+
+      {
+        include: SRC_DIR,
+        loader: 'css-loader',
+        options: {
+          importLoaders: 1,
+          sourceMap: debug,
+          modules: {
+            localIdentName: debug ? '[name]-[local]-[hash:base64:5]' : '[hash:base64:5]',
+            auto: (resourcePath: string) =>
+              /\.module\.(css|less|styl|scss|sass|sss)$/.test(resourcePath),
+            exportOnlyLocals: isServer,
+          },
+        },
+      },
+      {
+        loader: 'postcss-loader',
+        options: postcssConfig,
+      },
+      {
+        test: /\.less$/,
+        loader: 'less-loader',
+        options: {
+          lessOptions: {
+            javascriptEnabled: true,
+          },
+          prependData: `@import '~@/components/style/themes/default.less';`,
+        },
+      },
+    ].filter(Boolean),
+  };
+};
+
 const config = {
   context: ROOT_DIR,
 
@@ -75,6 +130,13 @@ const config = {
     strictExportPresence: true,
 
     rules: [
+      // routes
+      {
+        test: REG_SCRIPT,
+        include: [resolvePath(SRC_DIR, 'routes')],
+        loader: require.resolve('./loaders/routes.ts'),
+      },
+
       // Rules for JS / JSX
       {
         test: REG_SCRIPT,
@@ -130,7 +192,6 @@ const config = {
           {
             loader: MiniCssExtractPlugin.loader,
           },
-
           {
             loader: 'css-loader',
             options: {
@@ -152,60 +213,6 @@ const config = {
                 javascriptEnabled: true,
                 modifyVars: themeVariables,
               },
-            },
-          },
-        ],
-      },
-
-      {
-        test: REG_STYLE,
-        exclude: [REG_ANTD],
-        rules: [
-          {
-            issuer: { not: [REG_STYLE] },
-            use: 'isomorphic-style-loader',
-          },
-
-          {
-            exclude: SRC_DIR,
-            loader: 'css-loader',
-            options: {
-              sourceMap: debug,
-            },
-          },
-          {
-            exclude: SRC_DIR,
-            loader: 'postcss-loader',
-            options: {
-              plugins: [cssnano()],
-            },
-          },
-
-          {
-            include: SRC_DIR,
-            loader: 'css-loader',
-            options: {
-              importLoaders: 1,
-              sourceMap: debug,
-              modules: {
-                localIdentName: debug ? '[name]-[local]-[hash:base64:5]' : '[hash:base64:5]',
-                auto: (resourcePath: string) =>
-                  /\.module\.(css|less|styl|scss|sass|sss)$/.test(resourcePath),
-              },
-            },
-          },
-          {
-            loader: 'postcss-loader',
-            options: postcssConfig,
-          },
-          {
-            test: /\.less$/,
-            loader: 'less-loader',
-            options: {
-              lessOptions: {
-                javascriptEnabled: true,
-              },
-              prependData: `@import '~@/components/style/themes/default.less';`,
             },
           },
         ],
@@ -382,6 +389,16 @@ const clientConfig = {
       filename: debug ? 'css/[name].css' : 'css/[name].[chunkhash:8].css',
     }),
 
+    new ExtractCssChunks({
+      // Options similar to the same options in webpackOptions.output
+      // both options are optional
+      filename: debug ? 'css/chunks/[name].css' : 'css/chunks/[name].[contenthash:8].css',
+      chunkFilename: debug
+        ? 'css/chunks/[name].chunk.css'
+        : 'css/chunks/[name].[contenthash:8].chunk.css',
+      hot: debug,
+    }),
+
     // Emit a file with assets paths
     // https://github.com/webdeveric/webpack-assets-manifest#options
     new WebpackAssetsManifest({
@@ -441,22 +458,6 @@ const clientConfig = {
     ...(debug
       ? []
       : [
-          // A Webpack plugin to optimize \ minimize CSS assets.
-          // https://github.com/NMFR/optimize-css-assets-webpack-plugin
-          new OptimizeCssAssetsPlugin({
-            cssProcessor: cssnano,
-            cssProcessorOptions: {
-              safe: true,
-              autoprefixer: {
-                disable: true,
-              },
-              mergeLonghand: false,
-              discardComments: {
-                removeAll: true,
-              },
-            },
-            canPrint: true,
-          }),
           // Webpack Bundle Analyzer
           // https://github.com/th0r/webpack-bundle-analyzer
           ...(analyze ? [new BundleAnalyzerPlugin()] : []),
@@ -499,6 +500,23 @@ const clientConfig = {
               },
               ie8: false,
             },
+          }),
+
+          // A Webpack plugin to optimize \ minimize CSS assets.
+          // https://github.com/NMFR/optimize-css-assets-webpack-plugin
+          new OptimizeCssAssetsPlugin({
+            cssProcessor: cssnano,
+            cssProcessorOptions: {
+              safe: true,
+              autoprefixer: {
+                disable: true,
+              },
+              mergeLonghand: false,
+              discardComments: {
+                removeAll: true,
+              },
+            },
+            canPrint: true,
           }),
         ]
       : [],
@@ -621,5 +639,28 @@ const serverConfig = {
     __dirname: false,
   },
 };
+
+clientConfig.module.rules.push(css('client'));
+serverConfig.module.rules.push(css('server'));
+
+const REG_ANTD_STYLE = /antd\/.*?\/style.*?/;
+const origExternals = [...serverConfig.externals];
+
+serverConfig.externals = [
+  (context: any, request: any, callback: any) => {
+    if (request.match(REG_ANTD_STYLE)) return callback();
+    if (typeof origExternals[0] === 'function') {
+      origExternals[0](context, request, callback);
+    } else {
+      callback();
+    }
+  },
+  ...(typeof origExternals[0] === 'function' ? [] : origExternals),
+];
+
+serverConfig.module.rules.unshift({
+  test: REG_ANTD_STYLE,
+  use: 'null-loader',
+});
 
 export default [clientConfig, serverConfig];

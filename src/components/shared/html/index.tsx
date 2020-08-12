@@ -4,10 +4,6 @@ import serialize from 'serialize-javascript';
 interface HtmlProps {
   title: string;
   description: string;
-  styles?: Array<{
-    id: string;
-    cssText: string;
-  }>;
   stylesheets?: string[];
   scripts?: string[];
   app: any;
@@ -17,7 +13,6 @@ interface HtmlProps {
 const Html: React.FC<HtmlProps> = ({
   title,
   description,
-  styles = [],
   stylesheets = [],
   scripts = [],
   app,
@@ -38,9 +33,6 @@ const Html: React.FC<HtmlProps> = ({
       <link rel="apple-touch-icon" href="/icon.png" />
       {stylesheets.map(stylesheet => (
         <link key={stylesheet} rel="stylesheet" type="text/css" href={stylesheet} />
-      ))}
-      {styles.map(style => (
-        <style key={style.id} id={style.id} dangerouslySetInnerHTML={{ __html: style.cssText }} />
       ))}
     </head>
     <body>

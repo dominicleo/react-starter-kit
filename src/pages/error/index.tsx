@@ -1,11 +1,27 @@
 import React from 'react';
-import ErrorPage from './ErrorPage';
+import { Button, Result } from 'antd';
 
-function action() {
-  return {
-    title: 'Demo Error',
-    component: <ErrorPage />,
+interface PropTypes {
+  error?: {
+    name: string;
+    message: string;
+    stack: string;
   };
 }
 
-export default action;
+const ErrorPage: React.FC<PropTypes> = ({ error }) => {
+  return (
+    <Result
+      status={500}
+      title="服务器发生了错误"
+      subTitle={__DEV__ && error && <pre>{error.stack}</pre>}
+      extra={
+        <Button type="primary" href="/">
+          刷新页面
+        </Button>
+      }
+    />
+  );
+};
+
+export default ErrorPage;

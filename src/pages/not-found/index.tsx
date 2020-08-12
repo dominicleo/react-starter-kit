@@ -1,5 +1,5 @@
 import React from 'react';
-import useStyles from 'isomorphic-style-loader/useStyles';
+
 import s from './index.css';
 
 type PropTypes = {
@@ -7,7 +7,6 @@ type PropTypes = {
 };
 
 const NotFound: React.FC<PropTypes> = props => {
-  useStyles(s);
   return (
     <div className={s.root}>
       <div className={s.container}>

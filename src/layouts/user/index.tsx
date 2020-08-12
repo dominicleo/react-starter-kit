@@ -2,7 +2,7 @@ import React from 'react';
 import classnames from 'classnames';
 import { RouteContext } from 'universal-router';
 import { Row, Col } from 'antd';
-import useStyles from 'isomorphic-style-loader/useStyles';
+
 import history from '@/utils/history';
 import s from './index.module.less';
 
@@ -20,8 +20,6 @@ const TABS = [
 ];
 
 const LoginRegisterLayout: React.FC<RouteContext> = props => {
-  useStyles(s);
-
   const onClick = (pathname: string) => {
     if (pathname === props.pathname) return;
     history.replace(pathname);

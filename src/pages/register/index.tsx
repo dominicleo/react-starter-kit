@@ -1,10 +1,9 @@
 import React from 'react';
-import useStyles from 'isomorphic-style-loader/useStyles';
+
 import { Form, Input, Button } from 'antd';
 import s from './index.module.less';
 
 const Page = () => {
-  useStyles(s);
   return (
     <>
       <Form layout="vertical" initialValues={{ remember: true }}>

@@ -9,13 +9,6 @@ import { updateMeta } from '@/utils/DOMUtils';
 import router from '@/router';
 import { AppContextTypes } from '@/components/shared/app/context';
 
-const insertCss = (...styles: any[]) => {
-  const removeCss = styles.map((x: any) => x._insertCss());
-  return () => {
-    removeCss.forEach((f: any) => f());
-  };
-};
-
 const context: AppContextTypes = { pathname: '' };
 
 const container = document.getElementById('app');
@@ -46,6 +39,8 @@ async function onLocationChange(location: Location, action?: any) {
 
     const route = await router.resolve(context);
 
+    console.log(route);
+
     context.params = route.params;
 
     // Prevent multiple page renders during the routing process
@@ -59,49 +54,43 @@ async function onLocationChange(location: Location, action?: any) {
     }
 
     const renderReactApp = isInitialRender ? ReactDOM.hydrate : ReactDOM.render;
-    appInstance = renderReactApp(
-      <App context={context} insertCss={insertCss}>
-        {route.component}
-      </App>,
-      container,
-      () => {
-        if (isInitialRender) {
-          // Switch off the native scroll restoration behavior and handle it manually
-          // https://developers.google.com/web/updates/2015/09/history-api-scroll-restoration
-          if (window.history && 'scrollRestoration' in window.history) {
-            window.history.scrollRestoration = 'manual';
-          }
-
-          const elem = document.getElementById('css');
-          if (elem) elem.parentNode?.removeChild(elem);
-          return;
+    appInstance = renderReactApp(<App context={context}>{route.component}</App>, container, () => {
+      if (isInitialRender) {
+        // Switch off the native scroll restoration behavior and handle it manually
+        // https://developers.google.com/web/updates/2015/09/history-api-scroll-restoration
+        if (window.history && 'scrollRestoration' in window.history) {
+          window.history.scrollRestoration = 'manual';
         }
 
-        document.title = route.title;
+        const elem = document.getElementById('css');
+        if (elem) elem.parentNode?.removeChild(elem);
+        return;
+      }
 
-        updateMeta('description', route.description);
-        // Update necessary tags in <head> at runtime here, ie:
-        // updateMeta('keywords', route.keywords);
+      document.title = route.title;
 
-        let scrollX = 0;
-        let scrollY = 0;
-        const pos = scrollPositionsHistory[location.key || ''];
-        if (pos) {
-          scrollX = pos.scrollX;
-          scrollY = pos.scrollY;
-        } else {
-          const targetHash = location.hash.substr(1);
-          if (targetHash) {
-            const target = document.getElementById(targetHash);
-            if (target) {
-              scrollY = window.pageYOffset + target.getBoundingClientRect().top;
-            }
+      updateMeta('description', route.description);
+      // Update necessary tags in <head> at runtime here, ie:
+      // updateMeta('keywords', route.keywords);
+
+      let scrollX = 0;
+      let scrollY = 0;
+      const pos = scrollPositionsHistory[location.key || ''];
+      if (pos) {
+        scrollX = pos.scrollX;
+        scrollY = pos.scrollY;
+      } else {
+        const targetHash = location.hash.substr(1);
+        if (targetHash) {
+          const target = document.getElementById(targetHash);
+          if (target) {
+            scrollY = window.pageYOffset + target.getBoundingClientRect().top;
           }
         }
+      }
 
-        window.scrollTo(scrollX, scrollY);
-      },
-    );
+      window.scrollTo(scrollX, scrollY);
+    });
   } catch (error) {
     if (__DEV__) {
       throw error;

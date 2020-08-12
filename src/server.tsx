@@ -9,8 +9,7 @@ import PrettyError from 'pretty-error';
 import { AppContextTypes } from '@/components/shared/app/context';
 import App from '@/components/shared/app';
 import Html from '@/components/shared/html';
-import { ErrorPageWithoutStyle } from '@/pages/error/ErrorPage';
-import errorPageStyle from '@/pages/error/ErrorPage.css';
+import ErrorPage from '@/pages/error';
 import router from './router';
 // @ts-ignore
 import bundle from './bundle-manifest.json';
@@ -60,12 +59,6 @@ if (!__DEV__) {
 
 app.get('*', async (request, response, next) => {
   try {
-    const css = new Set();
-
-    const insertCss = (...styles: any[]) => {
-      styles.forEach(style => css.add(style._getCss()));
-    };
-
     const context: AppContextTypes = {
       pathname: request.path,
       query: request.query,
@@ -81,14 +74,9 @@ app.get('*', async (request, response, next) => {
     }
 
     const data = { ...route };
-    const rootComponent = (
-      <App context={context} insertCss={insertCss}>
-        {route.component}
-      </App>
-    );
+    const rootComponent = <App context={context}>{route.component}</App>;
 
     data.children = await ReactDOM.renderToString(rootComponent);
-    data.styles = [{ id: 'css', cssText: [...css].join('') }];
 
     const stylesheets = new Set();
     const scripts = new Set();
@@ -118,8 +106,8 @@ app.get('*', async (request, response, next) => {
     !__DEV__ && cache.set(request.url, document);
     response.status(route.status || 200);
     response.send(document);
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 });
 
@@ -128,19 +116,14 @@ const pe = new PrettyError();
 pe.skipNodeFiles();
 pe.skipPackage('express');
 
-app.use((err: any, request: Request, response: Response, _next: NextFunction) => {
-  console.error(pe.render(err));
+app.use((error: any, request: Request, response: Response, _next: NextFunction) => {
+  console.error(pe.render(error));
   const html = ReactDOM.renderToStaticMarkup(
-    <Html
-      app={{}}
-      title="Internal Server Error"
-      description={err.message}
-      styles={[{ id: 'css', cssText: errorPageStyle._getCss() }]}
-    >
-      {ReactDOM.renderToString(<ErrorPageWithoutStyle error={err} />)}
+    <Html app={{}} title="Internal Server Error" description={error.message}>
+      {ReactDOM.renderToString(<ErrorPage error={error} />)}
     </Html>,
   );
-  response.status(err.status || 500);
+  response.status(error.status || 500);
   response.send(`<!doctype html>${html}`);
 });
 
