@@ -39,8 +39,6 @@ async function onLocationChange(location: Location, action?: any) {
 
     const route = await router.resolve(context);
 
-    console.log(route);
-
     context.params = route.params;
 
     // Prevent multiple page renders during the routing process

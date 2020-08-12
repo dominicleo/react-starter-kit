@@ -21,16 +21,16 @@ const findParentRouteChunk = (route: Route) => {
 };
 
 const router = new UniversalRouter(routes, {
-  async resolveRoute(context, params) {
+  async resolveRoute(context) {
     if (typeof context.route.path === 'string' && context.route.redirect) {
       return context.route;
     }
 
+    console.log(context.route);
+
     if (typeof context.route.component === 'function') {
       return context.route.component().then(async (action: any) => {
         const children = await context.next();
-
-        console.log(findParentRouteChunk(context.route));
 
         return {
           ...context.route,

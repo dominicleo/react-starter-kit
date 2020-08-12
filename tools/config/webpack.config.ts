@@ -334,7 +334,7 @@ const config = {
     children: verbose,
   },
 
-  devtool: debug ? 'cheap-module-inline-source-map' : 'source-map',
+  devtool: debug ? 'cheap-module-source-map' : 'source-map',
 };
 
 const clientConfig = {
@@ -471,16 +471,6 @@ const clientConfig = {
           chunks: 'initial',
           test: /[\\/]node_modules[\\/]/,
           name: 'vendors',
-        },
-        antd: {
-          name: 'antd',
-          priority: 15,
-          test: REG_ANTD,
-        },
-        'antd-icon': {
-          name: 'antd-icon',
-          priority: 16,
-          test: /[\\/]node_modules[\\/].*(@ant-design\/icons)/,
         },
       },
     },

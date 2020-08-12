@@ -28,8 +28,4 @@ export default babelLoader.custom(() => ({
     ...config.options,
     plugins: [RoutePlugin],
   }),
-  result: (result: any) => {
-    console.log(result.code);
-    return result;
-  },
 }));
